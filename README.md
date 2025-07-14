@@ -10,7 +10,7 @@ ExpenseTracker is a Python-based tool designed to analyze and categorize financi
 
 ## Current Status
 
-This project is in the early stages of development. It currently lacks a user interface and backend infrastructure, but it provides a foundation for building a full-featured expense tracking application with intelligent transaction categorization.
+This project is in the early stages of development. It has the foundation for building a full-featured expense tracking application with intelligent transaction categorization.
 
 ## Technologies Used
 
