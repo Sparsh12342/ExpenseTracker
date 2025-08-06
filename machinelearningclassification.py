@@ -9,8 +9,10 @@ import torch
 import joblib
 from collections import Counter
 from sklearn.metrics import silhouette_score
+import sys
 
-FILENAME = "stmt.csv"
+# ✅ Accept filename from command-line
+FILENAME = sys.argv[1] if len(sys.argv) > 1 else "stmt.csv"
 MIN_SUBCLUSTERS = 2
 MAX_SUBCLUSTERS = 5
 
@@ -113,7 +115,7 @@ def classify_and_subcluster():
     summarize_by_category(df)
     df.to_csv("stmt_clustered_labeled.csv", index=False)
 
-    print("\n✅ Saved transactions with BERT categories + subclusters to stmt_bert_classified_and_subclustered.csv")
+    print("\n✅ Saved transactions with BERT categories + subclusters to stmt_clustered_labeled.csv")
 
 if __name__ == "__main__":
     classify_and_subcluster()

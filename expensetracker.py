@@ -1,12 +1,15 @@
 import csv
 import pandas as pd
-from flask import Flask, jsonify, request  # <-- add request for uploads
+from flask import Flask, jsonify, request
 from flask_cors import CORS
-import subprocess  # To run ML classification script before starting
+import subprocess
+import os
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+
+# ---------- Helper Functions ----------
 
 def group_by_first_word(df):
     df['FirstWord'] = df['Description'].str.split().str[0]
@@ -50,9 +53,6 @@ def group_by_cluster(df):
 
 
 def process_dataframe(df):
-    # Reuse all cleaning + calculations here so both endpoints can use it
-
-    # Clean and convert Amount column
     df = df[df["Amount"].astype(str).str.strip() != ""]
     df["Amount"] = df["Amount"].astype(str).str.replace(",", "")
     df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce")
@@ -86,7 +86,7 @@ def process_dataframe(df):
                 "Deposits": deposits_cat
             })
 
-    summary = {
+    return {
         "total_deposits": total_deposits,
         "total_withdrawals": total_withdrawals,
         "num_deposits": num_deposits,
@@ -97,24 +97,9 @@ def process_dataframe(df):
         "withdrawals_grouped_by_cluster": withdrawal_clusters,
         "category_summary": category_summary
     }
-    return summary
 
 
-@app.route('/summary')
-def summary():
-    filename = "stmt_clustered_labeled.csv"  # Output from classify_and_subcluster.py
-
-    try:
-        df = pd.read_csv(filename)
-    except Exception as e:
-        return jsonify({"error": f"Failed to read {filename}: {str(e)}"})
-
-    summary = process_dataframe(df)
-    return jsonify(summary)
-
-
-# -------------- New upload-csv endpoint --------------
-
+# ---------- Endpoints ----------
 @app.route('/upload-csv', methods=['POST'])
 def upload_csv():
     if 'file' not in request.files:
@@ -125,25 +110,39 @@ def upload_csv():
         return jsonify({"error": "Empty filename"}), 400
 
     try:
-        df = pd.read_csv(file)
+        # Save uploaded file
+        upload_path = "uploaded.csv"
+        file.save(upload_path)
+
+        # Process it
+        result = subprocess.run(
+            ["python3", "machinelearningclassification.py", upload_path],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            return jsonify({"error": f"ML script failed:\n{result.stderr}"}), 500
+
+        # Read labeled output and send processed summary
+        df = pd.read_csv("stmt_clustered_labeled.csv")
+        return jsonify(process_dataframe(df))
+
     except Exception as e:
-        return jsonify({"error": f"Failed to parse CSV: {str(e)}"}), 400
+        return jsonify({"error": f"Processing failed: {str(e)}"}), 400
 
-    summary = process_dataframe(df)
-    return jsonify(summary)
 
+
+@app.route('/')
+def home():
+    return "✅ Flask backend is running."
+
+
+# ---------- App Runner ----------
 
 if __name__ == "__main__":
-    print("🔁 Running classify_and_subcluster.py before starting Flask server...")
-    result = subprocess.run(["python3", "classify_and_subcluster.py"], capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"❌ Error running classify_and_subcluster.py:\n{result.stderr}")
-    else:
-        print("✅ classify_and_subcluster.py completed successfully.")
-
     print("🚀 Starting Flask server on http://localhost:5050")
     app.run(debug=True, port=5050)
-
 
 
 # import csv
