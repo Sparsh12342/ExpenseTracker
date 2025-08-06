@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/papaparse": "^5.3.16",
     "@types/react": "^18.2.25",
+    "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
     "electron": "^37.2.4",
     "postcss": "^8.5.6",
